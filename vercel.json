@@ -5,13 +5,5 @@
     "app/api/**/*.ts": {
       "maxDuration": 30
     }
-  },
-  "env": {
-    "DATABASE_URL": "@DATABASE_URL",
-    "DIRECT_URL": "@DIRECT_URL",
-    "ADMIN_USERNAME": "@ADMIN_USERNAME", 
-    "ADMIN_PASSWORD": "@ADMIN_PASSWORD",
-    "ADMIN_PASSWORD_SALT": "@ADMIN_PASSWORD_SALT",
-    "JWT_SECRET": "@JWT_SECRET"
   }
 }
