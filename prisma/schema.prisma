@@ -1,0 +1,183 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Event Settings - Main configuration
+model EventSettings {
+  id                String   @id @default(cuid())
+  eventDate         DateTime
+  eventTime         String
+  venue             String
+  acsLink           String
+  venmoHandle       String
+  maxParticipants   Int      @default(64)
+  registrationOpen  Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("event_settings")
+}
+
+// Participants - Tournament registrations
+model Participant {
+  id                    String   @id @default(cuid())
+  firstName             String
+  lastName              String
+  email                 String   @unique
+  phone                 String
+  skillLevel            String
+  dietaryRestrictions   String?
+  donationCompleted     Boolean  @default(false)
+  donationAmount        Float?
+  registrationDate      DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("participants")
+}
+
+// Volunteers - Event helpers
+model Volunteer {
+  id                String   @id @default(cuid())
+  firstName         String
+  lastName          String
+  email             String   @unique
+  phone             String
+  availability      String[] // Array of time slots
+  roles             String[] // Array of preferred roles
+  experience        String?
+  emergencyContact  String
+  emergencyPhone    String
+  additionalInfo    String?
+  registrationDate  DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("volunteers")
+}
+
+// Sponsors - Event sponsors
+model Sponsor {
+  id          String      @id @default(cuid())
+  name        String
+  website     String?
+  tier        SponsorTier
+  logoUrl     String?
+  description String?
+  isActive    Boolean     @default(true)
+  sortOrder   Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("sponsors")
+}
+
+enum SponsorTier {
+  GOLD
+  PLATINUM
+}
+
+// Content Management - For editable text content
+model ContentBlock {
+  id          String   @id @default(cuid())
+  key         String   @unique // e.g., "home_hero_text", "prostate_info", etc.
+  title       String
+  content     String   @db.Text
+  contentType String   @default("html") // html, markdown, text
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("content_blocks")
+}
+
+// News/Updates - For announcements
+model NewsItem {
+  id          String   @id @default(cuid())
+  title       String
+  content     String   @db.Text
+  excerpt     String?
+  isPublished Boolean  @default(false)
+  publishDate DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("news_items")
+}
+
+// FAQ - Frequently asked questions
+model FAQ {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String   @db.Text
+  category  String?
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("faqs")
+}
+
+// Admin Users - For authentication
+model AdminUser {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  email     String   @unique
+  password  String   // In production, this should be hashed
+  role      String   @default("admin")
+  isActive  Boolean  @default(true)
+  lastLogin DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admin_users")
+}
+
+// Email Templates - For automated emails
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  subject     String
+  htmlContent String   @db.Text
+  textContent String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("email_templates")
+}
+
+// Media/Images - For uploaded files
+model Media {
+  id          String   @id @default(cuid())
+  filename    String
+  originalName String
+  mimeType    String
+  size        Int
+  url         String
+  category    String?  // sponsors, news, content, etc.
+  description String?
+  createdAt   DateTime @default(now())
+
+  @@map("media")
+}
+
+// Analytics/Stats - For tracking
+model Analytics {
+  id              String   @id @default(cuid())
+  metric          String   // page_view, registration, donation, etc.
+  value           Int      @default(1)
+  metadata        Json?    // Additional data
+  date            DateTime @default(now())
+
+  @@map("analytics")
+}

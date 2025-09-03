@@ -1,103 +1,244 @@
+'use client';
+
+import Link from "next/link";
 import Image from "next/image";
+import { useState, useEffect } from 'react';
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [eventSettings, setEventSettings] = useState({
+    eventDate: 'September 27th, 2024',
+    eventTime: '5:00 PM - 10:00 PM',
+    venue: 'Pickleball HQ, New Jersey',
+    venmoHandle: '@EventOrganizer'
+  });
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('eventSettings');
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings);
+      setEventSettings({
+        eventDate: new Date(settings.eventDate).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }),
+        eventTime: settings.eventTime,
+        venue: settings.venue,
+        venmoHandle: settings.venmoHandle || '@EventOrganizer'
+      });
+    }
+  }, []);
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-8">
+      {/* Hero Section */}
+      <section className="text-center mb-12">
+        {/* Banner Image */}
+        <div className="mb-8">
+          <Image
+            src="/Pickle_for_prostate_copy.png"
+            alt="Pickleball for Prostate Cancer Awareness Banner"
+            width={1000}
+            height={500}
+            className="mx-auto rounded-xl shadow-2xl w-full max-w-4xl h-auto"
+            priority
+          />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 p-8 rounded-xl shadow-lg inline-block border border-green-100">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#0c372b] mb-4">Event Details</h2>
+          <div className="text-xl text-green-800 space-y-2">
+            <div className="flex items-center justify-center space-x-2">
+              <span>📅</span>
+              <span className="font-semibold">{eventSettings.eventDate}</span>
+            </div>
+            <div className="flex items-center justify-center space-x-2">
+              <span>🕔</span>
+              <span className="font-semibold">{eventSettings.eventTime}</span>
+            </div>
+            <div className="flex items-center justify-center space-x-2">
+              <span>📍</span>
+              <span className="font-semibold">{eventSettings.venue}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Prostate Cancer Information */}
+      <section className="mb-12">
+        <div className="grid md:grid-cols-2 gap-8">
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">
+              What is Prostate Cancer?
+            </h2>
+            <p className="text-gray-600 mb-4">
+              Prostate cancer is one of the most common types of cancer in men. The prostate 
+              is a small walnut-shaped gland that produces the seminal fluid that nourishes 
+              and transports sperm.
+            </p>
+            <p className="text-gray-600 mb-4">
+              Most prostate cancer grows slowly and is initially confined to the prostate 
+              gland, where it may not cause serious harm. However, while some types grow 
+              slowly and may need minimal or even no treatment, other types are aggressive 
+              and can spread quickly.
+            </p>
+          </div>
+          
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">
+              Why Awareness Matters
+            </h2>
+            <div className="space-y-4">
+              <div className="flex items-start">
+                <span className="text-2xl mr-3">📊</span>
+                <p className="text-gray-600">
+                  <strong>1 in 8 men</strong> will be diagnosed with prostate cancer in their lifetime
+                </p>
+              </div>
+              <div className="flex items-start">
+                <span className="text-2xl mr-3">🎯</span>
+                <p className="text-gray-600">
+                  Early detection through regular screening can save lives
+                </p>
+              </div>
+              <div className="flex items-start">
+                <span className="text-2xl mr-3">💪</span>
+                <p className="text-gray-600">
+                  When caught early, prostate cancer has a <strong>nearly 100% survival rate</strong>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Tournament Information */}
+      <section className="mb-12 bg-green-50 p-8 rounded-lg">
+        <h2 className="text-3xl font-bold text-center text-green-800 mb-6">
+          Join Our Pickleball Tournament
+        </h2>
+        <div className="grid md:grid-cols-2 gap-8">
+          <div>
+            <h3 className="text-xl font-semibold text-green-700 mb-3">Tournament Format</h3>
+            <ul className="space-y-2 text-gray-700">
+              <li>🏆 Multiple skill level divisions</li>
+              <li>👥 Doubles tournament format</li>
+              <li>🏅 Prizes for winners in each division</li>
+              <li>🍕 Food and refreshments included</li>
+              <li>🎵 Live music and entertainment</li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-green-700 mb-3">Requirements to Participate</h3>
+            <ul className="space-y-2 text-gray-700">
+              <li>✅ Donation to American Cancer Society (required)</li>
+              <li>✅ Complete registration form</li>
+              <li>✅ Specify your skill level</li>
+              <li>✅ Bring your own paddle (or rent on-site)</li>
+              <li>✅ Wear appropriate athletic attire</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Sponsors Section */}
+      <section className="mb-12 bg-gradient-to-r from-gray-50 to-green-50 p-8 rounded-xl border border-gray-200">
+        <h2 className="text-3xl font-bold text-center text-[#0c372b] mb-8">
+          Our Amazing Sponsors
+        </h2>
+        <p className="text-center text-gray-600 mb-8 max-w-2xl mx-auto">
+          We&apos;re grateful for our sponsors who make this event possible and support prostate cancer awareness.
+        </p>
+        
+        {/* Featured Sponsors */}
+        <div className="grid md:grid-cols-2 gap-8 mb-8">
+          {/* Platinum Sponsor */}
+          <div className="bg-white p-6 rounded-lg shadow-md border-2 border-purple-200 text-center">
+            <div className="mb-4">
+              <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-semibold">
+                Platinum Partner
+              </span>
+            </div>
+            <div className="h-16 flex items-center justify-center mb-4">
+              <div className="text-4xl">🎗️</div>
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">American Cancer Society</h3>
+            <p className="text-gray-600 text-sm">
+              Leading the fight against cancer through research, education, and support.
+            </p>
+            <a
+              href="https://www.cancer.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block mt-3 bg-[#0c372b] text-white px-4 py-2 rounded-md text-sm hover:bg-[#0a2d22] transition-colors"
+            >
+              Learn More
+            </a>
+          </div>
+
+          {/* Gold Sponsor */}
+          <div className="bg-white p-6 rounded-lg shadow-md border-2 border-yellow-200 text-center">
+            <div className="mb-4">
+              <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
+                Gold Sponsor
+              </span>
+            </div>
+            <div className="h-16 flex items-center justify-center mb-4">
+              <div className="text-4xl">🏓</div>
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Pickleball HQ</h3>
+            <p className="text-gray-600 text-sm">
+              Your premier destination for all things pickleball - courts, equipment, and community.
+            </p>
+            <a
+              href="https://pickleballhq.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block mt-3 bg-[#0c372b] text-white px-4 py-2 rounded-md text-sm hover:bg-[#0a2d22] transition-colors"
+            >
+              Visit Website
+            </a>
+          </div>
+        </div>
+
+        <div className="text-center">
+          <Link
+            href="/sponsors"
+            className="inline-block bg-[#0c372b] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#0a2d22] transition-colors"
+          >
+            View All Sponsors
+          </Link>
+        </div>
+      </section>
+
+      {/* Call to Action */}
+      <section className="text-center">
+        <h2 className="text-3xl font-bold text-gray-800 mb-6">
+          Ready to Make a Difference?
+        </h2>
+        <p className="text-lg text-gray-600 mb-8">
+          Sign up for our tournament and help us raise awareness and funds for prostate cancer research.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Link 
+            href="/donate"
+            className="bg-[#0c372b] text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-[#0a2d22] transition-colors"
+          >
+            Sign Up for Tournament
+          </Link>
+          <Link 
+            href="/volunteer"
+            className="bg-green-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-green-700 transition-colors"
+          >
+            Volunteer to Help
+          </Link>
+        </div>
+        
+        <div className="mt-8 p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-400">
+          <p className="text-gray-700">
+            💡 <strong>Want to support the event without playing?</strong><br />
+            You can donate directly to help cover event costs via Venmo to support our cause!
+          </p>
+        </div>
+      </section>
     </div>
   );
 }
