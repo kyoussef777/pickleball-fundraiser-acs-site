@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       })
       return NextResponse.json(contents)
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Content GET error:', error)
     return NextResponse.json({ error: 'Failed to fetch content' }, { status: 500 })
   }
@@ -46,9 +46,12 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json(content, { status: 201 })
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Content POST error:', error)
-    if (error.code === 'P2002' && error.meta?.target?.includes('key')) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002' && 
+        'meta' in error && error.meta && typeof error.meta === 'object' && 
+        'target' in error.meta && Array.isArray(error.meta.target) && 
+        error.meta.target.includes('key')) {
       return NextResponse.json({ error: 'Content key already exists' }, { status: 400 })
     }
     return NextResponse.json({ error: 'Failed to create content' }, { status: 500 })
@@ -67,7 +70,7 @@ export async function PUT(request: NextRequest) {
     })
 
     return NextResponse.json(content)
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Content PUT error:', error)
     return NextResponse.json({ error: 'Failed to update content' }, { status: 500 })
   }
@@ -88,7 +91,7 @@ export async function DELETE(request: NextRequest) {
     })
 
     return NextResponse.json({ success: true })
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Content DELETE error:', error)
     return NextResponse.json({ error: 'Failed to delete content' }, { status: 500 })
   }

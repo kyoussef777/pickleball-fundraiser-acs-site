@@ -38,19 +38,31 @@ export default function VolunteerPage() {
   });
 
   useEffect(() => {
-    const savedSettings = localStorage.getItem('eventSettings');
-    if (savedSettings) {
-      const settings = JSON.parse(savedSettings);
-      setEventSettings({
-        eventDate: new Date(settings.eventDate).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        }),
-        eventTime: settings.eventTime,
-        venue: settings.venue
-      });
-    }
+    const loadEventSettings = async () => {
+      try {
+        const response = await fetch('/api/settings');
+        if (response.ok) {
+          const settings = await response.json();
+          // Parse date without timezone conversion
+          const dateParts = settings.eventDate.split('-');
+          const eventDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+          
+          setEventSettings({
+            eventDate: eventDate.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }),
+            eventTime: settings.eventTime,
+            venue: settings.venue
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load event settings:', error);
+      }
+    };
+
+    loadEventSettings();
   }, []);
 
   const timeSlots = [
@@ -91,24 +103,40 @@ export default function VolunteerPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate form processing
-    setTimeout(() => {
-      alert('Thank you for volunteering! We will contact you soon with more details about your volunteer role.');
-      setIsSubmitting(false);
-      // Reset form
-      setFormData({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        availability: [],
-        roles: [],
-        experience: '',
-        emergencyContact: '',
-        emergencyPhone: '',
-        additionalInfo: ''
+    try {
+      // Save volunteer to database
+      const response = await fetch('/api/volunteers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
       });
-    }, 1000);
+
+      if (response.ok) {
+        alert('Thank you for volunteering! We will contact you soon with more details about your volunteer role.');
+        
+        // Reset form
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          availability: [],
+          roles: [],
+          experience: '',
+          emergencyContact: '',
+          emergencyPhone: '',
+          additionalInfo: ''
+        });
+      } else {
+        const error = await response.json();
+        alert(`Volunteer registration failed: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Volunteer registration error:', error);
+      alert('Volunteer registration failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

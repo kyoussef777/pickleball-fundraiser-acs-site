@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { ApiClient } from '@/lib/api';
 
 interface Participant {
   id: string;
@@ -48,69 +49,24 @@ export default function AdminPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState('participants');
-  const [newSponsor, setNewSponsor] = useState({
+  const [newSponsor, setNewSponsor] = useState<{
+    name: string;
+    website: string;
+    tier: 'gold' | 'platinum';
+    imageFile: File | null;
+  }>({
     name: '',
     website: '',
-    tier: 'gold' as const,
-    imageFile: null as File | null
+    tier: 'gold',
+    imageFile: null
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // Mock data - in a real app, this would come from a database
-  const [participants] = useState<Participant[]>([
-    {
-      id: '1',
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'john.doe@email.com',
-      phone: '(555) 123-4567',
-      skillLevel: 'intermediate',
-      registrationDate: '2024-09-01',
-      donationCompleted: true
-    },
-    {
-      id: '2',
-      firstName: 'Jane',
-      lastName: 'Smith',
-      email: 'jane.smith@email.com',
-      phone: '(555) 987-6543',
-      skillLevel: 'beginner',
-      registrationDate: '2024-09-02',
-      donationCompleted: false
-    }
-  ]);
-
-  const [volunteers] = useState<Volunteer[]>([
-    {
-      id: '1',
-      firstName: 'Mike',
-      lastName: 'Johnson',
-      email: 'mike.johnson@email.com',
-      phone: '(555) 456-7890',
-      availability: ['5:00 PM - 7:30 PM (Tournament & Setup)', '7:30 PM - 10:00 PM (Tournament & Cleanup)'],
-      roles: ['Tournament Referee/Official', 'Scorekeeping'],
-      registrationDate: '2024-09-01'
-    }
-  ]);
-
-  const [sponsors, setSponsors] = useState<Sponsor[]>([
-    {
-      id: '1',
-      name: 'American Cancer Society',
-      imageUrl: '/sponsors/acs-logo.png',
-      website: 'https://www.cancer.org',
-      tier: 'platinum',
-      dateAdded: '2024-09-01'
-    },
-    {
-      id: '2',
-      name: 'Pickleball HQ',
-      imageUrl: '/sponsors/pickleball-hq.png',
-      website: 'https://pickleballhq.com',
-      tier: 'gold',
-      dateAdded: '2024-09-02'
-    }
-  ]);
-
+  // Real data from database
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
+  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [eventSettings, setEventSettings] = useState<EventSettings>({
     eventDate: '2024-09-27',
     eventTime: '5:00 PM - 10:00 PM',
@@ -121,13 +77,55 @@ export default function AdminPage() {
     registrationOpen: true
   });
 
-  const handleLogin = (e: React.FormEvent) => {
+  // Load all data when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadAllData();
+    }
+  }, [isAuthenticated]);
+
+  const loadAllData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [participantsData, volunteersData, sponsorsData, settingsData] = await Promise.all([
+        ApiClient.getParticipants(),
+        ApiClient.getVolunteers(),
+        ApiClient.getSponsors(),
+        ApiClient.getSettings()
+      ]);
+
+      setParticipants(participantsData);
+      setVolunteers(volunteersData);
+      setSponsors(sponsorsData);
+      if (settingsData) {
+        setEventSettings(settingsData);
+      }
+    } catch (err) {
+      setError('Failed to load data');
+      console.error('Error loading data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simple authentication - in production, use proper auth
-    if (username === 'admin' && password === 'pickleballadmin2024') {
-      setIsAuthenticated(true);
-    } else {
-      alert('Invalid credentials');
+    try {
+      const response = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      
+      if (response.ok) {
+        setIsAuthenticated(true);
+      } else {
+        alert('Invalid credentials');
+      }
+    } catch {
+      alert('Authentication error');
     }
   };
 
@@ -137,37 +135,104 @@ export default function AdminPage() {
     setPassword('');
   };
 
-  const handleSettingsUpdate = (e: React.FormEvent) => {
+  const handleSettingsUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Save to localStorage (in real app, would save to database)
-    localStorage.setItem('eventSettings', JSON.stringify(eventSettings));
-    alert('Event settings updated successfully! Changes will appear on other pages.');
+    try {
+      setLoading(true);
+      await ApiClient.updateSettings(eventSettings);
+      alert('Event settings updated successfully! Changes will appear on other pages.');
+    } catch (error) {
+      console.error('Error updating settings:', error);
+      alert('Failed to update settings. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleAddSponsor = (e: React.FormEvent) => {
+  const handleAddSponsor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSponsor.name) {
       alert('Please enter sponsor name');
       return;
     }
     
-    const sponsor: Sponsor = {
-      id: Date.now().toString(),
-      name: newSponsor.name,
-      website: newSponsor.website,
-      tier: newSponsor.tier,
-      imageUrl: '/sponsors/placeholder.png', // In real app, would upload image
-      dateAdded: new Date().toISOString().split('T')[0]
-    };
-    
-    setSponsors([...sponsors, sponsor]);
-    setNewSponsor({ name: '', website: '', tier: 'gold', imageFile: null });
-    alert('Sponsor added successfully!');
+    try {
+      setLoading(true);
+      const sponsorData = {
+        name: newSponsor.name,
+        website: newSponsor.website || undefined,
+        tier: newSponsor.tier.toUpperCase() as 'GOLD' | 'PLATINUM',
+        logoUrl: '/sponsors/placeholder.png', // In real app, would upload image
+        description: undefined,
+        isActive: true,
+        sortOrder: 0
+      };
+      
+      const newSponsorFromApi = await ApiClient.createSponsor(sponsorData);
+      setSponsors([...sponsors, {
+        id: newSponsorFromApi.id,
+        name: newSponsorFromApi.name,
+        imageUrl: newSponsorFromApi.logoUrl || '/sponsors/placeholder.png',
+        website: newSponsorFromApi.website,
+        tier: newSponsorFromApi.tier.toLowerCase() as 'gold' | 'platinum',
+        dateAdded: new Date(newSponsorFromApi.createdAt).toISOString().split('T')[0]
+      }]);
+      setNewSponsor({ name: '', website: '', tier: 'gold', imageFile: null });
+      alert('Sponsor added successfully!');
+    } catch (error) {
+      console.error('Error adding sponsor:', error);
+      alert('Failed to add sponsor. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleRemoveSponsor = (sponsorId: string) => {
+  const handleRemoveSponsor = async (sponsorId: string) => {
     if (confirm('Are you sure you want to remove this sponsor?')) {
-      setSponsors(sponsors.filter(s => s.id !== sponsorId));
+      try {
+        setLoading(true);
+        await ApiClient.deleteSponsor(sponsorId);
+        setSponsors(sponsors.filter(s => s.id !== sponsorId));
+        alert('Sponsor removed successfully!');
+      } catch (error) {
+        console.error('Error removing sponsor:', error);
+        alert('Failed to remove sponsor. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleUpdateDonationStatus = async (participantId: string, currentStatus: boolean) => {
+    try {
+      setLoading(true);
+      const updatedStatus = !currentStatus;
+      
+      const response = await fetch('/api/participants', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          id: participantId, 
+          donationCompleted: updatedStatus 
+        })
+      });
+
+      if (response.ok) {
+        // Update local state
+        setParticipants(participants.map(p => 
+          p.id === participantId 
+            ? { ...p, donationCompleted: updatedStatus }
+            : p
+        ));
+        alert(`Donation status updated to ${updatedStatus ? 'Completed' : 'Pending'}`);
+      } else {
+        alert('Failed to update donation status');
+      }
+    } catch (error) {
+      console.error('Error updating donation status:', error);
+      alert('Failed to update donation status');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -284,6 +349,31 @@ export default function AdminPage() {
         </button>
       </div>
 
+      {/* Loading indicator */}
+      {loading && (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0c372b]"></div>
+          <span className="ml-3 text-gray-600">Loading...</span>
+        </div>
+      )}
+
+      {/* Error indicator */}
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+          <div className="flex">
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+              <button
+                onClick={loadAllData}
+                className="mt-2 text-sm text-red-600 hover:text-red-500 font-medium"
+              >
+                Try again
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Navigation Tabs */}
       <div className="border-b border-gray-200 mb-6">
         <nav className="-mb-px flex space-x-8">
@@ -344,6 +434,9 @@ export default function AdminPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Donation Status
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -374,6 +467,19 @@ export default function AdminPage() {
                       }`}>
                         {participant.donationCompleted ? 'Completed' : 'Pending'}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => handleUpdateDonationStatus(participant.id, participant.donationCompleted)}
+                        className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                          participant.donationCompleted
+                            ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                            : 'bg-green-100 text-green-800 hover:bg-green-200'
+                        }`}
+                        disabled={loading}
+                      >
+                        Mark as {participant.donationCompleted ? 'Pending' : 'Completed'}
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -502,7 +608,7 @@ export default function AdminPage() {
                   </label>
                   <select
                     value={newSponsor.tier}
-                    onChange={(e) => setNewSponsor({...newSponsor, tier: e.target.value as any})}
+                    onChange={(e) => setNewSponsor({...newSponsor, tier: e.target.value as 'gold' | 'platinum'})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0c372b] focus:border-transparent"
                   >
                     <option value="gold">Gold ($500)</option>

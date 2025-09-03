@@ -1,5 +1,56 @@
 // API utility functions for the admin panel
 
+interface EventSettings {
+  eventDate: string;
+  eventTime: string;
+  venue: string;
+  acsLink: string;
+  venmoHandle: string;
+  maxParticipants: number;
+  registrationOpen: boolean;
+}
+
+interface Participant {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  skillLevel: string;
+  dietaryRestrictions?: string;
+}
+
+interface Volunteer {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  availability: string[];
+  roles: string[];
+  experience?: string;
+  emergencyContact: string;
+  emergencyPhone: string;
+  additionalInfo?: string;
+}
+
+interface Sponsor {
+  name: string;
+  website?: string;
+  tier: 'GOLD' | 'PLATINUM';
+  logoUrl?: string;
+  description?: string;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+interface ContentBlock {
+  key: string;
+  title: string;
+  content: string;
+  contentType?: string;
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
 export class ApiClient {
   private static async request(endpoint: string, options: RequestInit = {}) {
     const response = await fetch(endpoint, {
@@ -23,7 +74,7 @@ export class ApiClient {
     return this.request('/api/settings')
   }
 
-  static async updateSettings(settings: any) {
+  static async updateSettings(settings: EventSettings) {
     return this.request('/api/settings', {
       method: 'PUT',
       body: JSON.stringify(settings),
@@ -35,14 +86,14 @@ export class ApiClient {
     return this.request('/api/participants')
   }
 
-  static async createParticipant(data: any) {
+  static async createParticipant(data: Participant) {
     return this.request('/api/participants', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
-  static async updateParticipant(data: any) {
+  static async updateParticipant(data: Participant & { id: string }) {
     return this.request('/api/participants', {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -60,14 +111,14 @@ export class ApiClient {
     return this.request('/api/volunteers')
   }
 
-  static async createVolunteer(data: any) {
+  static async createVolunteer(data: Volunteer) {
     return this.request('/api/volunteers', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
-  static async updateVolunteer(data: any) {
+  static async updateVolunteer(data: Volunteer & { id: string }) {
     return this.request('/api/volunteers', {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -85,14 +136,14 @@ export class ApiClient {
     return this.request('/api/sponsors')
   }
 
-  static async createSponsor(data: any) {
+  static async createSponsor(data: Sponsor) {
     return this.request('/api/sponsors', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
-  static async updateSponsor(data: any) {
+  static async updateSponsor(data: Sponsor & { id: string }) {
     return this.request('/api/sponsors', {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -111,14 +162,14 @@ export class ApiClient {
     return this.request(url)
   }
 
-  static async createContent(data: any) {
+  static async createContent(data: ContentBlock) {
     return this.request('/api/content', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
-  static async updateContent(data: any) {
+  static async updateContent(data: ContentBlock & { id: string }) {
     return this.request('/api/content', {
       method: 'PUT',
       body: JSON.stringify(data),

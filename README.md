@@ -1,36 +1,139 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pickleball for Prostate Cancer Tournament Website
+
+A Next.js application for managing a pickleball tournament fundraiser partnered with the American Cancer Society.
+
+## Features
+
+- **Tournament Registration**: Participants can register and donate to ACS
+- **Volunteer Management**: Volunteer sign-up and coordination
+- **Sponsor Management**: Dynamic sponsor display and admin management
+- **Admin CMS**: Complete content management system for event organizers
+- **Database Integration**: PostgreSQL with Prisma ORM
+- **Responsive Design**: Mobile-friendly interface
+
+## Tech Stack
+
+- **Framework**: Next.js 15 with App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Database**: PostgreSQL (Neon)
+- **ORM**: Prisma
+- **Deployment**: Vercel
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ 
+- PostgreSQL database (Neon recommended)
+
+### Local Development
+
+1. **Clone the repository**
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd pickleball-fundraiser
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. **Install dependencies**
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. **Set up environment variables**
+Copy `.env.example` to `.env` and update the values:
+```bash
+cp .env.example .env
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Required environment variables:
+- `DATABASE_URL`: Your Neon database connection string
+- `DIRECT_URL`: Your Neon direct database connection string
+- `ADMIN_USERNAME`: Admin login username
+- `ADMIN_PASSWORD`: Admin login password
+- `ADMIN_PASSWORD_SALT`: Salt for password hashing
+- `JWT_SECRET`: JWT signing secret
 
-## Learn More
+4. **Set up the database**
+```bash
+# Generate Prisma client
+npx prisma generate
 
-To learn more about Next.js, take a look at the following resources:
+# Push schema to database
+npx prisma db push
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+5. **Run the development server**
+```bash
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-## Deploy on Vercel
+### Database Management
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+# View database in Prisma Studio
+npx prisma studio
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Reset database (development only)
+npx prisma migrate reset
+
+# Deploy migrations (production)
+npm run db:migrate
+```
+
+## Deployment to Vercel
+
+1. **Connect your repository to Vercel**
+
+2. **Set environment variables in Vercel dashboard**:
+   - DATABASE_URL
+   - DIRECT_URL  
+   - ADMIN_USERNAME
+   - ADMIN_PASSWORD
+   - ADMIN_PASSWORD_SALT
+   - JWT_SECRET
+
+3. **Deploy**
+   Vercel will automatically build and deploy your application.
+
+## Admin Panel
+
+Access the admin panel at `/admin` with the credentials set in your environment variables.
+
+**Admin Features:**
+- View and export participant data
+- Manage volunteers
+- Add/remove sponsors
+- Update event settings
+- Content management
+
+## API Endpoints
+
+- `GET/POST /api/participants` - Tournament participants
+- `GET/POST /api/volunteers` - Event volunteers  
+- `GET/POST/DELETE /api/sponsors` - Sponsor management
+- `GET/PUT /api/settings` - Event settings
+- `POST /api/admin/auth` - Admin authentication
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── admin/          # Admin dashboard
+│   ├── api/           # API routes
+│   ├── donate/        # Registration & donation page
+│   ├── sponsors/      # Sponsors page
+│   ├── volunteer/     # Volunteer signup
+│   └── page.tsx       # Home page
+├── components/        # Reusable components
+├── lib/              # Utilities and configurations
+└── prisma/           # Database schema and migrations
+```
+
+## Contact
+
+For questions about the tournament or technical issues:
+**Mark Dawod** - [markrdawod@gmail.com](mailto:markrdawod@gmail.com)

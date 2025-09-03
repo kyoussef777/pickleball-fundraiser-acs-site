@@ -4,6 +4,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from 'react';
 
+interface Sponsor {
+  id: string;
+  name: string;
+  logoUrl?: string;
+  website?: string;
+  tier: string;
+  description?: string;
+}
+
 export default function Home() {
   const [eventSettings, setEventSettings] = useState({
     eventDate: 'September 27th, 2024',
@@ -11,22 +20,46 @@ export default function Home() {
     venue: 'Pickleball HQ, New Jersey',
     venmoHandle: '@EventOrganizer'
   });
+  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedSettings = localStorage.getItem('eventSettings');
-    if (savedSettings) {
-      const settings = JSON.parse(savedSettings);
-      setEventSettings({
-        eventDate: new Date(settings.eventDate).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        }),
-        eventTime: settings.eventTime,
-        venue: settings.venue,
-        venmoHandle: settings.venmoHandle || '@EventOrganizer'
-      });
-    }
+    const loadData = async () => {
+      try {
+        // Load event settings
+        const settingsResponse = await fetch('/api/settings');
+        if (settingsResponse.ok) {
+          const settings = await settingsResponse.json();
+          // Parse date without timezone conversion
+          const dateParts = settings.eventDate.split('-');
+          const eventDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+          
+          setEventSettings({
+            eventDate: eventDate.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }),
+            eventTime: settings.eventTime,
+            venue: settings.venue,
+            venmoHandle: settings.venmoHandle || '@EventOrganizer'
+          });
+        }
+
+        // Load sponsors for the sponsors section
+        const sponsorsResponse = await fetch('/api/sponsors');
+        if (sponsorsResponse.ok) {
+          const sponsorsData = await sponsorsResponse.json();
+          setSponsors(sponsorsData.slice(0, 2)); // Show only first 2 sponsors
+        }
+      } catch (error) {
+        console.error('Failed to load data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, []);
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -150,53 +183,70 @@ export default function Home() {
         
         {/* Featured Sponsors */}
         <div className="grid md:grid-cols-2 gap-8 mb-8">
-          {/* Platinum Sponsor */}
-          <div className="bg-white p-6 rounded-lg shadow-md border-2 border-purple-200 text-center">
-            <div className="mb-4">
-              <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-semibold">
-                Platinum Partner
-              </span>
+          {loading ? (
+            <div className="col-span-2 text-center py-8">
+              <div className="text-gray-500">Loading sponsors...</div>
             </div>
-            <div className="h-16 flex items-center justify-center mb-4">
-              <div className="text-4xl">🎗️</div>
+          ) : sponsors.length > 0 ? (
+            sponsors.map((sponsor) => (
+              <div
+                key={sponsor.id}
+                className={`bg-white p-6 rounded-lg shadow-md border-2 text-center ${
+                  sponsor.tier === 'PLATINUM'
+                    ? 'border-purple-200'
+                    : 'border-yellow-200'
+                }`}
+              >
+                <div className="mb-4">
+                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                    sponsor.tier === 'PLATINUM'
+                      ? 'bg-purple-100 text-purple-800'
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {sponsor.tier === 'PLATINUM' ? 'Platinum Partner' : 'Gold Sponsor'}
+                  </span>
+                </div>
+                <div className="h-16 flex items-center justify-center mb-4">
+                  {sponsor.logoUrl ? (
+                    <Image
+                      src={sponsor.logoUrl}
+                      alt={`${sponsor.name} logo`}
+                      width={64}
+                      height={64}
+                      className="max-h-16 max-w-16 object-contain"
+                    />
+                  ) : (
+                    <div className="text-4xl">
+                      {sponsor.tier === 'PLATINUM' ? '🎗️' : '🏓'}
+                    </div>
+                  )}
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">{sponsor.name}</h3>
+                <p className="text-gray-600 text-sm mb-4">
+                  {sponsor.description || 
+                    (sponsor.tier === 'PLATINUM' 
+                      ? 'Thank you for your platinum level support!' 
+                      : 'Thank you for your gold level support!'
+                    )
+                  }
+                </p>
+                {sponsor.website && (
+                  <a
+                    href={sponsor.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block mt-3 bg-[#0c372b] text-white px-4 py-2 rounded-md text-sm hover:bg-[#0a2d22] transition-colors"
+                  >
+                    Visit Website
+                  </a>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="col-span-2 text-center py-8">
+              <div className="text-gray-500">No sponsors to display yet.</div>
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">American Cancer Society</h3>
-            <p className="text-gray-600 text-sm">
-              Leading the fight against cancer through research, education, and support.
-            </p>
-            <a
-              href="https://www.cancer.org"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block mt-3 bg-[#0c372b] text-white px-4 py-2 rounded-md text-sm hover:bg-[#0a2d22] transition-colors"
-            >
-              Learn More
-            </a>
-          </div>
-
-          {/* Gold Sponsor */}
-          <div className="bg-white p-6 rounded-lg shadow-md border-2 border-yellow-200 text-center">
-            <div className="mb-4">
-              <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
-                Gold Sponsor
-              </span>
-            </div>
-            <div className="h-16 flex items-center justify-center mb-4">
-              <div className="text-4xl">🏓</div>
-            </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Pickleball HQ</h3>
-            <p className="text-gray-600 text-sm">
-              Your premier destination for all things pickleball - courts, equipment, and community.
-            </p>
-            <a
-              href="https://pickleballhq.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block mt-3 bg-[#0c372b] text-white px-4 py-2 rounded-md text-sm hover:bg-[#0a2d22] transition-colors"
-            >
-              Visit Website
-            </a>
-          </div>
+          )}
         </div>
 
         <div className="text-center">
@@ -214,9 +264,17 @@ export default function Home() {
         <h2 className="text-3xl font-bold text-gray-800 mb-6">
           Ready to Make a Difference?
         </h2>
-        <p className="text-lg text-gray-600 mb-8">
+        <p className="text-lg text-gray-600 mb-4">
           Sign up for our tournament and help us raise awareness and funds for prostate cancer research.
         </p>
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-8 rounded max-w-2xl mx-auto">
+          <p className="text-yellow-800 font-semibold">
+            🏆 Tournament Entry: $50 minimum donation required to play
+          </p>
+          <p className="text-yellow-700 text-sm mt-1">
+            All donations support prostate cancer research through the American Cancer Society
+          </p>
+        </div>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link 
             href="/donate"
@@ -233,10 +291,18 @@ export default function Home() {
         </div>
         
         <div className="mt-8 p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-400">
-          <p className="text-gray-700">
+          <p className="text-gray-700 mb-3">
             💡 <strong>Want to support the event without playing?</strong><br />
-            You can donate directly to help cover event costs via Venmo to support our cause!
+            You can donate directly to help cover event costs via Venmo:
           </p>
+          <div className="bg-white p-3 rounded border-l-4 border-yellow-400">
+            <p className="font-bold text-[#0c372b] text-lg">
+              Venmo: <span className="font-mono">{eventSettings.venmoHandle}</span>
+            </p>
+            <p className="text-sm text-gray-600 mt-1">
+              Please include &quot;Event Support&quot; in the memo
+            </p>
+          </div>
         </div>
       </section>
     </div>

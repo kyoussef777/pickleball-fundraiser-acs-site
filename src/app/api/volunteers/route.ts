@@ -8,7 +8,7 @@ export async function GET() {
       orderBy: { registrationDate: 'desc' }
     })
     return NextResponse.json(volunteers)
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Volunteers GET error:', error)
     return NextResponse.json({ error: 'Failed to fetch volunteers' }, { status: 500 })
   }
@@ -35,9 +35,12 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json(volunteer, { status: 201 })
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Volunteers POST error:', error)
-    if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002' && 
+        'meta' in error && error.meta && typeof error.meta === 'object' && 
+        'target' in error.meta && Array.isArray(error.meta.target) && 
+        error.meta.target.includes('email')) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 400 })
     }
     return NextResponse.json({ error: 'Failed to create volunteer' }, { status: 500 })
@@ -56,7 +59,7 @@ export async function PUT(request: NextRequest) {
     })
 
     return NextResponse.json(volunteer)
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Volunteers PUT error:', error)
     return NextResponse.json({ error: 'Failed to update volunteer' }, { status: 500 })
   }
@@ -77,7 +80,7 @@ export async function DELETE(request: NextRequest) {
     })
 
     return NextResponse.json({ success: true })
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Volunteers DELETE error:', error)
     return NextResponse.json({ error: 'Failed to delete volunteer' }, { status: 500 })
   }

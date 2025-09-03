@@ -13,7 +13,7 @@ export async function GET() {
       ]
     })
     return NextResponse.json(sponsors)
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Sponsors GET error:', error)
     return NextResponse.json({ error: 'Failed to fetch sponsors' }, { status: 500 })
   }
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json(sponsor, { status: 201 })
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Sponsors POST error:', error)
     return NextResponse.json({ error: 'Failed to create sponsor' }, { status: 500 })
   }
@@ -58,7 +58,7 @@ export async function PUT(request: NextRequest) {
     })
 
     return NextResponse.json(sponsor)
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Sponsors PUT error:', error)
     return NextResponse.json({ error: 'Failed to update sponsor' }, { status: 500 })
   }
@@ -81,7 +81,7 @@ export async function DELETE(request: NextRequest) {
     })
 
     return NextResponse.json({ success: true })
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Sponsors DELETE error:', error)
     return NextResponse.json({ error: 'Failed to delete sponsor' }, { status: 500 })
   }

@@ -23,30 +23,43 @@ export default function DonatePage() {
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDonationModal, setShowDonationModal] = useState(false);
   const [eventSettings, setEventSettings] = useState({
     eventDate: 'September 27th, 2024',
     eventTime: '5:00 PM - 10:00 PM',
     venue: 'Pickleball HQ, New Jersey',
-    venmoHandle: '@EventOrganizer'
+    venmoHandle: '@EventOrganizer',
+    acsLink: 'https://www.cancer.org/involved/donate.html'
   });
 
-  // In a real app, this would fetch from your API/database
   useEffect(() => {
-    // For now, we'll use localStorage to simulate getting data from admin panel
-    const savedSettings = localStorage.getItem('eventSettings');
-    if (savedSettings) {
-      const settings = JSON.parse(savedSettings);
-      setEventSettings({
-        eventDate: new Date(settings.eventDate).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        }),
-        eventTime: settings.eventTime,
-        venue: settings.venue,
-        venmoHandle: settings.venmoHandle || '@EventOrganizer'
-      });
-    }
+    const loadEventSettings = async () => {
+      try {
+        const response = await fetch('/api/settings');
+        if (response.ok) {
+          const settings = await response.json();
+          // Parse date without timezone conversion
+          const dateParts = settings.eventDate.split('-');
+          const eventDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+          
+          setEventSettings({
+            eventDate: eventDate.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }),
+            eventTime: settings.eventTime,
+            venue: settings.venue,
+            venmoHandle: settings.venmoHandle || '@EventOrganizer',
+            acsLink: settings.acsLink || 'https://www.cancer.org/involved/donate.html'
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load event settings:', error);
+      }
+    };
+
+    loadEventSettings();
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -60,13 +73,55 @@ export default function DonatePage() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate form processing
-    setTimeout(() => {
-      // Redirect to ACS donation page
-      window.open('https://www.cancer.org/involved/donate.html', '_blank');
-      alert('Thank you for signing up! Please complete your donation to the American Cancer Society in the new tab, then return here for confirmation.');
+    try {
+      // Save participant to database
+      const response = await fetch('/api/participants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        // Show donation modal instead of immediate redirect
+        setShowDonationModal(true);
+        
+        // Reset form
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          skillLevel: '',
+          dietaryRestrictions: ''
+        });
+      } else {
+        const error = await response.json();
+        alert(`Registration failed: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      alert('Registration failed. Please try again.');
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
+  };
+
+  const handleDonateACS = () => {
+    const acsLink = eventSettings.acsLink || 'https://www.cancer.org/involved/donate.html';
+    window.open(acsLink, '_blank');
+    setShowDonationModal(false);
+  };
+
+  const handleDonateVenmo = () => {
+    // Create Venmo deep link - removes @ symbol if present
+    const venmoHandle = eventSettings.venmoHandle.replace('@', '');
+    const venmoUrl = `https://venmo.com/${venmoHandle}?txn=pay&note=Tournament%20Donation`;
+    window.open(venmoUrl, '_blank');
+    setShowDonationModal(false);
+  };
+
+  const handleCloseModal = () => {
+    setShowDonationModal(false);
   };
 
   return (
@@ -94,13 +149,21 @@ export default function DonatePage() {
         <div className="flex">
           <div className="ml-3">
             <h3 className="text-lg font-medium text-[#0c372b]">
-              Registration Process
+              Tournament Registration Requirements
             </h3>
             <div className="mt-2 text-green-700">
+              <div className="bg-yellow-100 border-l-4 border-yellow-500 p-3 mb-3 rounded">
+                <p className="font-semibold text-yellow-800">
+                  ⚠️ Minimum $50 donation required to play in the tournament
+                </p>
+                <p className="text-sm text-yellow-700 mt-1">
+                  Donations under $50 are greatly appreciated but do not qualify for tournament play
+                </p>
+              </div>
               <ol className="list-decimal list-inside space-y-1">
                 <li>Fill out the registration form below</li>
                 <li>Submit the form to proceed to donation</li>
-                <li>Complete your donation to the American Cancer Society</li>
+                <li>Complete your $50+ donation to the American Cancer Society</li>
                 <li>Your tournament registration will be confirmed upon donation</li>
               </ol>
             </div>
@@ -254,6 +317,79 @@ export default function DonatePage() {
           You&apos;ll receive a confirmation email with additional details after your donation is complete.
         </p>
       </div>
+
+      {/* Donation Options Modal */}
+      {showDonationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-lg shadow-lg max-w-lg mx-4 relative">
+            <button
+              onClick={handleCloseModal}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl"
+            >
+              ×
+            </button>
+            
+            <div className="text-center mb-6">
+              <div className="flex justify-center mb-4">
+                <Image
+                  src="/Pickle_for_prostate.png"
+                  alt="Pickleball for Prostate Cancer Logo"
+                  width={60}
+                  height={60}
+                  className="rounded-lg"
+                />
+              </div>
+              <h2 className="text-2xl font-bold text-[#0c372b] mb-2">
+                Registration Successful! 🎉
+              </h2>
+              <p className="text-gray-600">
+                Thank you for signing up for our tournament! Now complete your registration with a donation.
+              </p>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div className="bg-red-50 border-l-4 border-red-500 p-4">
+                <h3 className="font-semibold text-red-800 mb-2">🏓 Tournament Entry: $50 Minimum Required</h3>
+                <p className="text-sm text-red-700">
+                  This minimum donation is required to play in the tournament. Lesser amounts are appreciated but don&apos;t qualify for tournament play.
+                </p>
+              </div>
+
+              <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+                <h3 className="font-semibold text-blue-800 mb-2">Alternative: Venmo Option</h3>
+                <p className="text-sm text-blue-700 mb-2">
+                  You can also send your donation via Venmo to:
+                </p>
+                <p className="font-mono font-bold text-blue-800 bg-white px-2 py-1 rounded border inline-block">
+                  {eventSettings.venmoHandle}
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Please include &quot;Tournament Donation&quot; in the memo
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={handleDonateACS}
+                className="flex-1 bg-[#0c372b] text-white py-3 px-6 rounded-md font-semibold hover:bg-[#0a2d22] transition-colors text-center"
+              >
+                Donate via American Cancer Society →
+              </button>
+              <button
+                onClick={handleDonateVenmo}
+                className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-md font-semibold hover:bg-blue-700 transition-colors text-center"
+              >
+                I&apos;ll Use Venmo
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-500 text-center mt-4">
+              Your tournament spot is reserved. Complete your donation to finalize registration.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

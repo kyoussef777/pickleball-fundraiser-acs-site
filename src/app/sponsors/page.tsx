@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 interface Sponsor {
@@ -9,44 +9,64 @@ interface Sponsor {
   imageUrl: string;
   website?: string;
   tier: 'platinum' | 'gold';
+  description?: string;
 }
 
 export default function SponsorsPage() {
-  // Mock sponsors data - in real app, this would come from database/API
-  const [sponsors] = useState<Sponsor[]>([
-    {
-      id: '1',
-      name: 'American Cancer Society',
-      imageUrl: '/sponsors/acs-logo.png', // Would be uploaded via admin
-      website: 'https://www.cancer.org',
-      tier: 'platinum'
-    },
-    {
-      id: '2',
-      name: 'Pickleball HQ',
-      imageUrl: '/sponsors/pickleball-hq.png',
-      website: 'https://pickleballhq.com',
-      tier: 'gold'
-    }
-  ]);
+  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadSponsors = async () => {
+      try {
+        setError(null);
+        const response = await fetch('/api/sponsors');
+        if (response.ok) {
+          const data = await response.json();
+          // Transform API data to match component interface
+          const transformedSponsors = data.map((sponsor: { id: string; name: string; logoUrl?: string; website?: string; tier: string; description?: string }) => ({
+            id: sponsor.id,
+            name: sponsor.name,
+            imageUrl: sponsor.logoUrl || '/sponsors/placeholder.png',
+            website: sponsor.website,
+            tier: sponsor.tier.toLowerCase(),
+            description: sponsor.description
+          }));
+          setSponsors(transformedSponsors);
+        } else {
+          setError('Failed to load sponsors');
+          console.error('Failed to load sponsors');
+        }
+      } catch (error) {
+        setError('Error loading sponsors');
+        console.error('Error loading sponsors:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSponsors();
+  }, []);
 
   const getTierColor = (tier: string) => {
-    switch (tier) {
-      case 'platinum': return 'border-purple-300 bg-purple-50';
-      case 'gold': return 'border-yellow-300 bg-yellow-50';
+    switch (tier.toUpperCase()) {
+      case 'PLATINUM': return 'border-purple-300 bg-purple-50';
+      case 'GOLD': return 'border-yellow-300 bg-yellow-50';
       default: return 'border-gray-300 bg-gray-50';
     }
   };
 
   const getTierTitle = (tier: string) => {
-    return tier.charAt(0).toUpperCase() + tier.slice(1) + ' Sponsor';
+    return tier.charAt(0).toUpperCase() + tier.slice(1).toLowerCase() + ' Sponsor';
   };
 
   const groupedSponsors = sponsors.reduce((acc, sponsor) => {
-    if (!acc[sponsor.tier]) {
-      acc[sponsor.tier] = [];
+    const tierKey = sponsor.tier.toLowerCase();
+    if (!acc[tierKey]) {
+      acc[tierKey] = [];
     }
-    acc[sponsor.tier].push(sponsor);
+    acc[tierKey].push(sponsor);
     return acc;
   }, {} as Record<string, Sponsor[]>);
 
@@ -84,55 +104,101 @@ export default function SponsorsPage() {
         </p>
       </div>
 
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+          <div className="flex">
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-2 text-sm text-red-600 hover:text-red-500 font-medium"
+              >
+                Try again
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sponsors by Tier */}
       <div className="space-y-12">
-        {tierOrder.map((tier) => {
-          const tieredSponsors = groupedSponsors[tier];
-          if (!tieredSponsors || tieredSponsors.length === 0) return null;
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0c372b] mx-auto mb-4"></div>
+            <div className="text-gray-500 text-lg">Loading sponsors...</div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <div className="text-red-500 text-lg">Unable to load sponsors</div>
+            <p className="text-gray-400 mt-2">Please try again later</p>
+          </div>
+        ) : sponsors.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-gray-500 text-lg">No sponsors to display yet.</div>
+            <p className="text-gray-400 mt-2">Check back soon for our amazing sponsors!</p>
+          </div>
+        ) : (
+          tierOrder.map((tier) => {
+            const tieredSponsors = groupedSponsors[tier];
+            if (!tieredSponsors || tieredSponsors.length === 0) return null;
 
-          return (
-            <section key={tier}>
-              <h2 className="text-3xl font-bold text-center text-[#0c372b] mb-8">
-                {getTierTitle(tier)}
-              </h2>
-              <div className={`grid gap-8 ${
-                tier === 'platinum' ? 'md:grid-cols-1' : 
-                'md:grid-cols-2'
-              }`}>
-                {tieredSponsors.map((sponsor) => (
-                  <div
-                    key={sponsor.id}
-                    className={`p-8 rounded-xl shadow-lg text-center transition-transform hover:scale-105 ${getTierColor(tier)} border-2`}
-                  >
-                    <div className={`mb-6 ${tier === 'platinum' ? 'h-32' : tier === 'gold' ? 'h-24' : 'h-20'} flex items-center justify-center`}>
-                      {/* Placeholder for sponsor logo */}
-                      <div className="bg-white p-4 rounded-lg shadow-inner border">
-                        <div className="text-4xl text-gray-400">🏢</div>
+            return (
+              <section key={tier}>
+                <h2 className="text-3xl font-bold text-center text-[#0c372b] mb-8">
+                  {getTierTitle(tier)}
+                </h2>
+                <div className={`grid gap-8 ${
+                  tier === 'platinum' ? 'md:grid-cols-1' : 
+                  'md:grid-cols-2'
+                }`}>
+                  {tieredSponsors.map((sponsor) => (
+                    <div
+                      key={sponsor.id}
+                      className={`p-8 rounded-xl shadow-lg text-center transition-transform hover:scale-105 ${getTierColor(tier)} border-2`}
+                    >
+                      <div className={`mb-6 ${tier === 'platinum' ? 'h-32' : 'h-24'} flex items-center justify-center`}>
+                        {sponsor.imageUrl ? (
+                          <Image
+                            src={sponsor.imageUrl}
+                            alt={`${sponsor.name} logo`}
+                            width={tier === 'platinum' ? 128 : 96}
+                            height={tier === 'platinum' ? 128 : 96}
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        ) : (
+                          <div className="bg-white p-4 rounded-lg shadow-inner border">
+                            <div className="text-4xl text-gray-400">🏢</div>
+                          </div>
+                        )}
                       </div>
+                      <h3 className={`font-bold text-gray-800 mb-4 ${
+                        tier === 'platinum' ? 'text-2xl' : 'text-xl'
+                      }`}>
+                        {sponsor.name}
+                      </h3>
+                      {sponsor.description && (
+                        <p className="text-gray-600 text-sm mb-4">
+                          {sponsor.description}
+                        </p>
+                      )}
+                      {sponsor.website && (
+                        <a
+                          href={sponsor.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block bg-[#0c372b] text-white px-4 py-2 rounded-md hover:bg-[#0a2d22] transition-colors text-sm"
+                        >
+                          Visit Website
+                        </a>
+                      )}
                     </div>
-                    <h3 className={`font-bold text-gray-800 mb-4 ${
-                      tier === 'platinum' ? 'text-2xl' : 
-                      tier === 'gold' ? 'text-xl' : 
-                      'text-lg'
-                    }`}>
-                      {sponsor.name}
-                    </h3>
-                    {sponsor.website && (
-                      <a
-                        href={sponsor.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-block bg-[#0c372b] text-white px-4 py-2 rounded-md hover:bg-[#0a2d22] transition-colors text-sm"
-                      >
-                        Visit Website
-                      </a>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-          );
-        })}
+                  ))}
+                </div>
+              </section>
+            );
+          })
+        )}
       </div>
 
       {/* Become a Sponsor Section */}
