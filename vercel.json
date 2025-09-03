@@ -7,11 +7,11 @@
     }
   },
   "env": {
-    "DATABASE_URL": "@database_url",
-    "DIRECT_URL": "@direct_url",
-    "ADMIN_USERNAME": "@admin_username", 
-    "ADMIN_PASSWORD": "@admin_password",
-    "ADMIN_PASSWORD_SALT": "@admin_password_salt",
-    "JWT_SECRET": "@jwt_secret"
+    "DATABASE_URL": "@DATABASE_URL",
+    "DIRECT_URL": "@DIRECT_URL",
+    "ADMIN_USERNAME": "@ADMIN_USERNAME", 
+    "ADMIN_PASSWORD": "@ADMIN_PASSWORD",
+    "ADMIN_PASSWORD_SALT": "@ADMIN_PASSWORD_SALT",
+    "JWT_SECRET": "@JWT_SECRET"
   }
 }
