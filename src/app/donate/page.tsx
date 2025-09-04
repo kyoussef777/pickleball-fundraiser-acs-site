@@ -335,9 +335,6 @@ export default function DonatePage() {
             eventSettings.venue || 'Loading...'
           )}
         </p>
-        <p className="text-sm text-green-600 mt-2">
-          You&apos;ll receive a confirmation email with additional details after your donation is complete.
-        </p>
       </div>
 
       {/* Donation Options Modal */}
