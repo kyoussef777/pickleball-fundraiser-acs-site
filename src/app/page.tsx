@@ -15,10 +15,10 @@ interface Sponsor {
 
 export default function Home() {
   const [eventSettings, setEventSettings] = useState({
-    eventDate: null,
-    eventTime: null,
-    venue: null,
-    venmoHandle: null
+    eventDate: null as string | null,
+    eventTime: null as string | null,
+    venue: null as string | null,
+    venmoHandle: null as string | null
   });
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);

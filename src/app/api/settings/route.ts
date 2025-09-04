@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { InputValidator, RateLimiter } from '@/lib/security'
-
-function getClientIP(request: NextRequest): string {
-  return request.ip || 
-         request.headers.get('x-forwarded-for')?.split(',')[0] || 
-         request.headers.get('x-real-ip') || 
-         'unknown'
-}
+import { getClientIP } from '@/lib/utils'
 
 // GET /api/settings - Get event settings (public)
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     let settings = await prisma.eventSettings.findFirst({
       orderBy: { updatedAt: 'desc' },

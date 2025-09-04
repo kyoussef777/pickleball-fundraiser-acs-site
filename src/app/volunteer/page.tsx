@@ -28,9 +28,9 @@ export default function VolunteerPage() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [eventSettings, setEventSettings] = useState({
-    eventDate: null,
-    eventTime: null,
-    venue: null
+    eventDate: null as string | null,
+    eventTime: null as string | null,
+    venue: null as string | null
   });
   const [settingsLoading, setSettingsLoading] = useState(true);
 

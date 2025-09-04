@@ -109,7 +109,7 @@ export class InputValidator {
       }
       
       return parsedUrl.toString()
-    } catch (error) {
+    } catch {
       throw new Error('Invalid URL format')
     }
   }

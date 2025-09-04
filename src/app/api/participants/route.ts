@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { InputValidator, RateLimiter } from '@/lib/security'
-
-function getClientIP(request: NextRequest): string {
-  return request.ip || 
-         request.headers.get('x-forwarded-for')?.split(',')[0] || 
-         request.headers.get('x-real-ip') || 
-         'unknown'
-}
+import { getClientIP } from '@/lib/utils'
 
 // GET /api/participants - Get all participants (Admin only in production)
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // In production, this should check admin authentication
     const participants = await prisma.participant.findMany({
@@ -78,7 +72,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Don't return sensitive data
-    const { id, registrationDate, updatedAt, ...safeParticipant } = participant
+    const { id, registrationDate } = participant
     
     return NextResponse.json({ 
       success: true, 

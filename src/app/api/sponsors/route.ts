@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { InputValidator, RateLimiter } from '@/lib/security'
-
-function getClientIP(request: NextRequest): string {
-  return request.ip || 
-         request.headers.get('x-forwarded-for')?.split(',')[0] || 
-         request.headers.get('x-real-ip') || 
-         'unknown'
-}
+import { getClientIP } from '@/lib/utils'
 
 // GET /api/sponsors - Get all active sponsors
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const sponsors = await prisma.sponsor.findMany({
       where: { isActive: true },
@@ -77,7 +71,7 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         website,
-        tier: tier.toUpperCase(),
+        tier: tier.toUpperCase() as 'GOLD' | 'PLATINUM',
         logoUrl,
         description,
         sortOrder
@@ -109,9 +103,9 @@ export async function PUT(request: NextRequest) {
     }
     
     // Sanitize update data if provided
-    const sanitizedData: any = {}
+    const sanitizedData: Record<string, string | number | boolean> = {}
     if (updateData.name) sanitizedData.name = InputValidator.sanitizeString(updateData.name, 100)
-    if (updateData.tier) sanitizedData.tier = InputValidator.validateSponsorTier(updateData.tier).toUpperCase()
+    if (updateData.tier) sanitizedData.tier = InputValidator.validateSponsorTier(updateData.tier).toUpperCase() as 'GOLD' | 'PLATINUM'
     if (updateData.website) sanitizedData.website = InputValidator.validateUrl(updateData.website)
     if (updateData.logoUrl) sanitizedData.logoUrl = InputValidator.validateUrl(updateData.logoUrl)
     if (updateData.description) sanitizedData.description = InputValidator.sanitizeString(updateData.description, 500)

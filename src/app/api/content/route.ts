@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { InputValidator, RateLimiter } from '@/lib/security'
-
-function getClientIP(request: NextRequest): string {
-  return request.ip || 
-         request.headers.get('x-forwarded-for')?.split(',')[0] || 
-         request.headers.get('x-real-ip') || 
-         'unknown'
-}
+import { getClientIP } from '@/lib/utils'
 
 // GET /api/content - Get all content blocks or by key (public)
 export async function GET(request: NextRequest) {
@@ -143,7 +137,7 @@ export async function PUT(request: NextRequest) {
     }
     
     // Sanitize update data if provided
-    const sanitizedData: any = {}
+    const sanitizedData: Record<string, string | number | boolean> = {}
     if (updateData.key) sanitizedData.key = InputValidator.sanitizeString(updateData.key, 50)
     if (updateData.title) sanitizedData.title = InputValidator.sanitizeString(updateData.title, 200)
     if (updateData.content) sanitizedData.content = InputValidator.sanitizeString(updateData.content, 10000)

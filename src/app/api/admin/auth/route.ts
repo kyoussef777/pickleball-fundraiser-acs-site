@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
+import { getClientIP } from '@/lib/utils'
 
 // Rate limiting simple implementation
 const loginAttempts = new Map<string, { count: number; lastAttempt: number }>()
 const MAX_ATTEMPTS = 5
 const LOCKOUT_TIME = 15 * 60 * 1000 // 15 minutes
-
-function getClientIP(request: NextRequest): string {
-  return request.ip || 
-         request.headers.get('x-forwarded-for')?.split(',')[0] || 
-         request.headers.get('x-real-ip') || 
-         'unknown'
-}
 
 function isRateLimited(ip: string): boolean {
   const attempts = loginAttempts.get(ip)
