@@ -25,16 +25,18 @@ export default function DonatePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDonationModal, setShowDonationModal] = useState(false);
   const [eventSettings, setEventSettings] = useState({
-    eventDate: 'September 27th, 2024',
-    eventTime: '5:00 PM - 10:00 PM',
-    venue: 'Pickleball HQ, New Jersey',
-    venmoHandle: '@EventOrganizer',
-    acsLink: 'https://www.cancer.org/involved/donate.html'
+    eventDate: null as string | null,
+    eventTime: null as string | null,
+    venue: null as string | null,
+    venmoHandle: null as string | null,
+    acsLink: null as string | null
   });
+  const [settingsLoading, setSettingsLoading] = useState(true);
 
   useEffect(() => {
     const loadEventSettings = async () => {
       try {
+        setSettingsLoading(true);
         const response = await fetch('/api/settings');
         if (response.ok) {
           const settings = await response.json();
@@ -56,6 +58,8 @@ export default function DonatePage() {
         }
       } catch (error) {
         console.error('Failed to load event settings:', error);
+      } finally {
+        setSettingsLoading(false);
       }
     };
 
@@ -114,7 +118,7 @@ export default function DonatePage() {
 
   const handleDonateVenmo = () => {
     // Create Venmo deep link - removes @ symbol if present
-    const venmoHandle = eventSettings.venmoHandle.replace('@', '');
+    const venmoHandle = eventSettings.venmoHandle?.replace('@', '') || 'EventOrganizer';
     const venmoUrl = `https://venmo.com/${venmoHandle}?txn=pay&note=Tournament%20Donation`;
     window.open(venmoUrl, '_blank');
     setShowDonationModal(false);
@@ -297,7 +301,13 @@ export default function DonatePage() {
         </p>
         <div className="bg-white p-4 rounded border-l-4 border-yellow-400">
           <p className="font-medium text-gray-800">
-            Venmo: <span className="text-[#0c372b]">{eventSettings.venmoHandle}</span>
+            Venmo: <span className="text-[#0c372b]">
+              {settingsLoading ? (
+                <span className="animate-pulse bg-gray-200 rounded h-5 w-24 inline-block"></span>
+              ) : (
+                eventSettings.venmoHandle || 'Loading...'
+              )}
+            </span>
           </p>
           <p className="text-sm text-gray-600 mt-1">
             Please include &quot;Pickleball Event&quot; in the memo
@@ -311,7 +321,19 @@ export default function DonatePage() {
           Event Reminder
         </h3>
         <p className="text-green-700">
-          📅 {eventSettings.eventDate} | 🕔 {eventSettings.eventTime} | 📍 {eventSettings.venue}
+          📅 {settingsLoading ? (
+            <span className="animate-pulse bg-green-200 rounded h-5 w-32 inline-block"></span>
+          ) : (
+            eventSettings.eventDate || 'Loading...'
+          )} | 🕔 {settingsLoading ? (
+            <span className="animate-pulse bg-green-200 rounded h-5 w-28 inline-block"></span>
+          ) : (
+            eventSettings.eventTime || 'Loading...'
+          )} | 📍 {settingsLoading ? (
+            <span className="animate-pulse bg-green-200 rounded h-5 w-40 inline-block"></span>
+          ) : (
+            eventSettings.venue || 'Loading...'
+          )}
         </p>
         <p className="text-sm text-green-600 mt-2">
           You&apos;ll receive a confirmation email with additional details after your donation is complete.
@@ -361,7 +383,11 @@ export default function DonatePage() {
                   You can also send your donation via Venmo to:
                 </p>
                 <p className="font-mono font-bold text-blue-800 bg-white px-2 py-1 rounded border inline-block">
-                  {eventSettings.venmoHandle}
+                  {settingsLoading ? (
+                    <span className="animate-pulse bg-gray-200 rounded h-5 w-24 inline-block"></span>
+                  ) : (
+                    eventSettings.venmoHandle || 'Loading...'
+                  )}
                 </p>
                 <p className="text-xs text-blue-600 mt-1">
                   Please include &quot;Tournament Donation&quot; in the memo

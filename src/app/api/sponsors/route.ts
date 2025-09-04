@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { InputValidator, RateLimiter } from '@/lib/security'
+
+function getClientIP(request: NextRequest): string {
+  return request.ip || 
+         request.headers.get('x-forwarded-for')?.split(',')[0] || 
+         request.headers.get('x-real-ip') || 
+         'unknown'
+}
 
 // GET /api/sponsors - Get all active sponsors
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const sponsors = await prisma.sponsor.findMany({
       where: { isActive: true },
@@ -10,7 +18,19 @@ export async function GET() {
         { tier: 'desc' }, // PLATINUM first, then GOLD
         { sortOrder: 'asc' },
         { createdAt: 'asc' }
-      ]
+      ],
+      select: {
+        id: true,
+        name: true,
+        website: true,
+        tier: true,
+        logoUrl: true,
+        description: true,
+        sortOrder: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true
+      }
     })
     return NextResponse.json(sponsors)
   } catch (error: unknown) {
@@ -19,59 +39,111 @@ export async function GET() {
   }
 }
 
-// POST /api/sponsors - Create new sponsor
+// POST /api/sponsors - Create new sponsor (Admin only)
 export async function POST(request: NextRequest) {
   try {
+    const clientIP = getClientIP(request)
+    
+    // Rate limiting: 5 sponsor creations per IP per hour (admin only)
+    if (!RateLimiter.isAllowed(`sponsor_${clientIP}`, 5, 60 * 60 * 1000)) {
+      return NextResponse.json(
+        { error: 'Too many sponsor creation attempts. Please try again later.' }, 
+        { status: 429 }
+      )
+    }
+
     const data = await request.json()
     
+    // Validate and sanitize all inputs
+    const name = InputValidator.sanitizeString(data.name, 100)
+    const tier = InputValidator.validateSponsorTier(data.tier)
+    
+    // Optional fields
+    const website = data.website ? InputValidator.validateUrl(data.website) : null
+    const logoUrl = data.logoUrl ? InputValidator.validateUrl(data.logoUrl) : null
+    const description = data.description 
+      ? InputValidator.sanitizeString(data.description, 500)
+      : null
+    const sortOrder = data.sortOrder 
+      ? InputValidator.validateNumber(data.sortOrder, 0, 999)
+      : 0
+    
+    // Additional validation
+    if (!name || name.length < 1 || !tier) {
+      return NextResponse.json({ error: 'Name and tier are required' }, { status: 400 })
+    }
+
     const sponsor = await prisma.sponsor.create({
       data: {
-        name: data.name,
-        website: data.website || null,
-        tier: data.tier.toUpperCase(), // Ensure uppercase for enum
-        logoUrl: data.logoUrl || null,
-        description: data.description || null,
-        sortOrder: data.sortOrder || 0
+        name,
+        website,
+        tier: tier.toUpperCase(),
+        logoUrl,
+        description,
+        sortOrder
       }
     })
 
     return NextResponse.json(sponsor, { status: 201 })
   } catch (error: unknown) {
     console.error('Sponsors POST error:', error)
+    
+    // Handle validation errors
+    if (error instanceof Error && error.message.includes('Invalid')) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+    
     return NextResponse.json({ error: 'Failed to create sponsor' }, { status: 500 })
   }
 }
 
-// PUT /api/sponsors - Update sponsor
+// PUT /api/sponsors - Update sponsor (Admin only)
 export async function PUT(request: NextRequest) {
   try {
     const data = await request.json()
     const { id, ...updateData } = data
     
-    if (updateData.tier) {
-      updateData.tier = updateData.tier.toUpperCase()
+    // Validate ID
+    if (!id || typeof id !== 'string') {
+      return NextResponse.json({ error: 'Valid ID required' }, { status: 400 })
     }
+    
+    // Sanitize update data if provided
+    const sanitizedData: any = {}
+    if (updateData.name) sanitizedData.name = InputValidator.sanitizeString(updateData.name, 100)
+    if (updateData.tier) sanitizedData.tier = InputValidator.validateSponsorTier(updateData.tier).toUpperCase()
+    if (updateData.website) sanitizedData.website = InputValidator.validateUrl(updateData.website)
+    if (updateData.logoUrl) sanitizedData.logoUrl = InputValidator.validateUrl(updateData.logoUrl)
+    if (updateData.description) sanitizedData.description = InputValidator.sanitizeString(updateData.description, 500)
+    if (updateData.sortOrder !== undefined) sanitizedData.sortOrder = InputValidator.validateNumber(updateData.sortOrder, 0, 999)
+    if (updateData.isActive !== undefined) sanitizedData.isActive = InputValidator.validateBoolean(updateData.isActive)
     
     const sponsor = await prisma.sponsor.update({
       where: { id },
-      data: updateData
+      data: sanitizedData
     })
 
     return NextResponse.json(sponsor)
   } catch (error: unknown) {
     console.error('Sponsors PUT error:', error)
+    
+    // Handle validation errors
+    if (error instanceof Error && error.message.includes('Invalid')) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+    
     return NextResponse.json({ error: 'Failed to update sponsor' }, { status: 500 })
   }
 }
 
-// DELETE /api/sponsors - Delete sponsor (soft delete by setting isActive = false)
+// DELETE /api/sponsors - Delete sponsor (Admin only - soft delete by setting isActive = false)
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     
-    if (!id) {
-      return NextResponse.json({ error: 'ID required' }, { status: 400 })
+    if (!id || typeof id !== 'string') {
+      return NextResponse.json({ error: 'Valid ID required' }, { status: 400 })
     }
 
     // Soft delete - just mark as inactive

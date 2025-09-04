@@ -15,10 +15,10 @@ interface Sponsor {
 
 export default function Home() {
   const [eventSettings, setEventSettings] = useState({
-    eventDate: 'September 27th, 2024',
-    eventTime: '5:00 PM - 10:00 PM',
-    venue: 'Pickleball HQ, New Jersey',
-    venmoHandle: '@EventOrganizer'
+    eventDate: null,
+    eventTime: null,
+    venue: null,
+    venmoHandle: null
   });
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,15 +81,33 @@ export default function Home() {
           <div className="text-xl text-green-800 space-y-2">
             <div className="flex items-center justify-center space-x-2">
               <span>📅</span>
-              <span className="font-semibold">{eventSettings.eventDate}</span>
+              <span className="font-semibold">
+                {loading ? (
+                  <span className="animate-pulse bg-green-200 rounded h-6 w-32 inline-block"></span>
+                ) : (
+                  eventSettings.eventDate || 'Loading...'
+                )}
+              </span>
             </div>
             <div className="flex items-center justify-center space-x-2">
               <span>🕔</span>
-              <span className="font-semibold">{eventSettings.eventTime}</span>
+              <span className="font-semibold">
+                {loading ? (
+                  <span className="animate-pulse bg-green-200 rounded h-6 w-28 inline-block"></span>
+                ) : (
+                  eventSettings.eventTime || 'Loading...'
+                )}
+              </span>
             </div>
             <div className="flex items-center justify-center space-x-2">
               <span>📍</span>
-              <span className="font-semibold">{eventSettings.venue}</span>
+              <span className="font-semibold">
+                {loading ? (
+                  <span className="animate-pulse bg-green-200 rounded h-6 w-40 inline-block"></span>
+                ) : (
+                  eventSettings.venue || 'Loading...'
+                )}
+              </span>
             </div>
           </div>
         </div>
@@ -156,7 +174,6 @@ export default function Home() {
               <li>👥 Doubles tournament format</li>
               <li>🏅 Prizes for winners in each division</li>
               <li>🍕 Food and refreshments included</li>
-              <li>🎵 Live music and entertainment</li>
             </ul>
           </div>
           <div>
@@ -297,7 +314,13 @@ export default function Home() {
           </p>
           <div className="bg-white p-3 rounded border-l-4 border-yellow-400">
             <p className="font-bold text-[#0c372b] text-lg">
-              Venmo: <span className="font-mono">{eventSettings.venmoHandle}</span>
+              Venmo: <span className="font-mono">
+                {loading ? (
+                  <span className="animate-pulse bg-gray-200 rounded h-5 w-24 inline-block"></span>
+                ) : (
+                  eventSettings.venmoHandle || 'Loading...'
+                )}
+              </span>
             </p>
             <p className="text-sm text-gray-600 mt-1">
               Please include &quot;Event Support&quot; in the memo

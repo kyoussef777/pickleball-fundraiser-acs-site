@@ -54,8 +54,6 @@ model Volunteer {
   availability      String[] // Array of time slots
   roles             String[] // Array of preferred roles
   experience        String?
-  emergencyContact  String
-  emergencyPhone    String
   additionalInfo    String?
   registrationDate  DateTime @default(now())
   updatedAt         DateTime @updatedAt

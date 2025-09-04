@@ -11,8 +11,6 @@ interface VolunteerFormData {
   availability: string[];
   roles: string[];
   experience: string;
-  emergencyContact: string;
-  emergencyPhone: string;
   additionalInfo: string;
 }
 
@@ -25,21 +23,21 @@ export default function VolunteerPage() {
     availability: [],
     roles: [],
     experience: '',
-    emergencyContact: '',
-    emergencyPhone: '',
     additionalInfo: ''
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [eventSettings, setEventSettings] = useState({
-    eventDate: 'September 27th, 2024',
-    eventTime: '5:00 PM - 10:00 PM',
-    venue: 'Pickleball HQ, New Jersey'
+    eventDate: null,
+    eventTime: null,
+    venue: null
   });
+  const [settingsLoading, setSettingsLoading] = useState(true);
 
   useEffect(() => {
     const loadEventSettings = async () => {
       try {
+        setSettingsLoading(true);
         const response = await fetch('/api/settings');
         if (response.ok) {
           const settings = await response.json();
@@ -59,6 +57,8 @@ export default function VolunteerPage() {
         }
       } catch (error) {
         console.error('Failed to load event settings:', error);
+      } finally {
+        setSettingsLoading(false);
       }
     };
 
@@ -123,8 +123,6 @@ export default function VolunteerPage() {
           availability: [],
           roles: [],
           experience: '',
-          emergencyContact: '',
-          emergencyPhone: '',
           additionalInfo: ''
         });
       } else {
@@ -241,37 +239,6 @@ export default function VolunteerPage() {
               name="phone"
               required
               value={formData.phone}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0c372b] focus:border-transparent"
-            />
-          </div>
-
-          {/* Emergency Contact */}
-          <div>
-            <label htmlFor="emergencyContact" className="block text-sm font-medium text-gray-700 mb-2">
-              Emergency Contact Name *
-            </label>
-            <input
-              type="text"
-              id="emergencyContact"
-              name="emergencyContact"
-              required
-              value={formData.emergencyContact}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0c372b] focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="emergencyPhone" className="block text-sm font-medium text-gray-700 mb-2">
-              Emergency Contact Phone *
-            </label>
-            <input
-              type="tel"
-              id="emergencyPhone"
-              name="emergencyPhone"
-              required
-              value={formData.emergencyPhone}
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0c372b] focus:border-transparent"
             />
@@ -393,7 +360,15 @@ export default function VolunteerPage() {
           Event Details
         </h3>
         <p className="text-green-700">
-          📅 {eventSettings.eventDate} | 📍 {eventSettings.venue}
+          📅 {settingsLoading ? (
+            <span className="animate-pulse bg-green-200 rounded h-5 w-32 inline-block"></span>
+          ) : (
+            eventSettings.eventDate || 'Loading...'
+          )} | 📍 {settingsLoading ? (
+            <span className="animate-pulse bg-green-200 rounded h-5 w-40 inline-block"></span>
+          ) : (
+            eventSettings.venue || 'Loading...'
+          )}
         </p>
         <p className="text-sm text-green-600 mt-2">
           Thank you for supporting prostate cancer awareness!

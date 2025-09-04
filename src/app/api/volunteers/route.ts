@@ -1,11 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { InputValidator, RateLimiter } from '@/lib/security'
 
-// GET /api/volunteers - Get all volunteers
-export async function GET() {
+function getClientIP(request: NextRequest): string {
+  return request.ip || 
+         request.headers.get('x-forwarded-for')?.split(',')[0] || 
+         request.headers.get('x-real-ip') || 
+         'unknown'
+}
+
+// GET /api/volunteers - Get all volunteers (Admin only in production)
+export async function GET(request: NextRequest) {
   try {
+    // In production, this should check admin authentication
     const volunteers = await prisma.volunteer.findMany({
-      orderBy: { registrationDate: 'desc' }
+      orderBy: { registrationDate: 'desc' },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        availability: true,
+        roles: true,
+        experience: true,
+        registrationDate: true,
+        updatedAt: true
+      }
     })
     return NextResponse.json(volunteers)
   } catch (error: unknown) {
@@ -17,32 +38,79 @@ export async function GET() {
 // POST /api/volunteers - Create new volunteer
 export async function POST(request: NextRequest) {
   try {
+    const clientIP = getClientIP(request)
+    
+    // Rate limiting: 3 volunteer registrations per IP per hour
+    if (!RateLimiter.isAllowed(`volunteer_${clientIP}`, 3, 60 * 60 * 1000)) {
+      return NextResponse.json(
+        { error: 'Too many volunteer registration attempts. Please try again later.' }, 
+        { status: 429 }
+      )
+    }
+
     const data = await request.json()
     
+    // Validate and sanitize all inputs
+    const firstName = InputValidator.validateName(data.firstName)
+    const lastName = InputValidator.validateName(data.lastName)
+    const email = InputValidator.validateEmail(data.email)
+    const phone = InputValidator.validatePhone(data.phone)
+    
+    // Validate arrays
+    const availability = InputValidator.validateArray(data.availability, 7) // Max 7 days
+    const roles = InputValidator.validateArray(data.roles, 5) // Max 5 roles
+    
+    // Optional fields
+    const experience = data.experience 
+      ? InputValidator.sanitizeString(data.experience, 500)
+      : null
+    const additionalInfo = data.additionalInfo 
+      ? InputValidator.sanitizeString(data.additionalInfo, 1000)
+      : null
+    
+    // Additional validation
+    if (!firstName || !lastName || !email || !phone || 
+        !availability || availability.length === 0 || !roles || roles.length === 0) {
+      return NextResponse.json({ error: 'All required fields must be provided' }, { status: 400 })
+    }
+
     const volunteer = await prisma.volunteer.create({
       data: {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        phone: data.phone,
-        availability: data.availability,
-        roles: data.roles,
-        experience: data.experience || null,
-        emergencyContact: data.emergencyContact,
-        emergencyPhone: data.emergencyPhone,
-        additionalInfo: data.additionalInfo || null
+        firstName,
+        lastName,
+        email,
+        phone,
+        availability,
+        roles,
+        experience,
+        additionalInfo
       }
     })
 
-    return NextResponse.json(volunteer, { status: 201 })
+    // Don't return sensitive data
+    const { id, registrationDate, updatedAt, ...safeVolunteer } = volunteer
+    
+    return NextResponse.json({ 
+      success: true, 
+      volunteer: { id, registrationDate }
+    }, { status: 201 })
+    
   } catch (error: unknown) {
     console.error('Volunteers POST error:', error)
+    
+    // Handle validation errors
+    if (error instanceof Error && error.message.includes('Invalid')) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+    
+    // Handle Prisma unique constraint errors
     if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002' && 
         'meta' in error && error.meta && typeof error.meta === 'object' && 
         'target' in error.meta && Array.isArray(error.meta.target) && 
         error.meta.target.includes('email')) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 400 })
     }
+    
     return NextResponse.json({ error: 'Failed to create volunteer' }, { status: 500 })
   }
 }
@@ -53,14 +121,36 @@ export async function PUT(request: NextRequest) {
     const data = await request.json()
     const { id, ...updateData } = data
     
+    // Validate ID
+    if (!id || typeof id !== 'string') {
+      return NextResponse.json({ error: 'Valid ID required' }, { status: 400 })
+    }
+    
+    // Sanitize update data if provided
+    const sanitizedData: any = {}
+    if (updateData.firstName) sanitizedData.firstName = InputValidator.validateName(updateData.firstName)
+    if (updateData.lastName) sanitizedData.lastName = InputValidator.validateName(updateData.lastName)
+    if (updateData.email) sanitizedData.email = InputValidator.validateEmail(updateData.email)
+    if (updateData.phone) sanitizedData.phone = InputValidator.validatePhone(updateData.phone)
+    if (updateData.availability) sanitizedData.availability = InputValidator.validateArray(updateData.availability, 7)
+    if (updateData.roles) sanitizedData.roles = InputValidator.validateArray(updateData.roles, 5)
+    if (updateData.experience) sanitizedData.experience = InputValidator.sanitizeString(updateData.experience, 500)
+    if (updateData.additionalInfo) sanitizedData.additionalInfo = InputValidator.sanitizeString(updateData.additionalInfo, 1000)
+    
     const volunteer = await prisma.volunteer.update({
       where: { id },
-      data: updateData
+      data: sanitizedData
     })
 
     return NextResponse.json(volunteer)
   } catch (error: unknown) {
     console.error('Volunteers PUT error:', error)
+    
+    // Handle validation errors
+    if (error instanceof Error && error.message.includes('Invalid')) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+    
     return NextResponse.json({ error: 'Failed to update volunteer' }, { status: 500 })
   }
 }
@@ -71,8 +161,8 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     
-    if (!id) {
-      return NextResponse.json({ error: 'ID required' }, { status: 400 })
+    if (!id || typeof id !== 'string') {
+      return NextResponse.json({ error: 'Valid ID required' }, { status: 400 })
     }
 
     await prisma.volunteer.delete({

@@ -236,6 +236,52 @@ export default function AdminPage() {
     }
   };
 
+  const handleDeleteParticipant = async (participantId: string, participantName: string) => {
+    if (confirm(`Are you sure you want to delete ${participantName}? This action cannot be undone.`)) {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/participants?id=${participantId}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          setParticipants(participants.filter(p => p.id !== participantId));
+          alert('Participant deleted successfully');
+        } else {
+          alert('Failed to delete participant');
+        }
+      } catch (error) {
+        console.error('Error deleting participant:', error);
+        alert('Failed to delete participant');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleDeleteVolunteer = async (volunteerId: string, volunteerName: string) => {
+    if (confirm(`Are you sure you want to delete ${volunteerName}? This action cannot be undone.`)) {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/volunteers?id=${volunteerId}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          setVolunteers(volunteers.filter(v => v.id !== volunteerId));
+          alert('Volunteer deleted successfully');
+        } else {
+          alert('Failed to delete volunteer');
+        }
+      } catch (error) {
+        console.error('Error deleting volunteer:', error);
+        alert('Failed to delete volunteer');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const exportParticipants = () => {
     const csv = [
       ['Name', 'Email', 'Phone', 'Skill Level', 'Registration Date', 'Donation Status'].join(','),
@@ -376,7 +422,7 @@ export default function AdminPage() {
 
       {/* Navigation Tabs */}
       <div className="border-b border-gray-200 mb-6">
-        <nav className="-mb-px flex space-x-8">
+        <nav className="-mb-px flex flex-wrap gap-2 sm:space-x-8">
           {[
             { id: 'participants', label: 'Participants', count: participants.length },
             { id: 'volunteers', label: 'Volunteers', count: volunteers.length },
@@ -386,7 +432,7 @@ export default function AdminPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`py-2 px-3 sm:px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'border-[#0c372b] text-[#0c372b]'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -416,7 +462,8 @@ export default function AdminPage() {
             </button>
           </div>
           <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -469,22 +516,32 @@ export default function AdminPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => handleUpdateDonationStatus(participant.id, participant.donationCompleted)}
-                        className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                          participant.donationCompleted
-                            ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                            : 'bg-green-100 text-green-800 hover:bg-green-200'
-                        }`}
-                        disabled={loading}
-                      >
-                        Mark as {participant.donationCompleted ? 'Pending' : 'Completed'}
-                      </button>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <button
+                          onClick={() => handleUpdateDonationStatus(participant.id, participant.donationCompleted)}
+                          className={`px-3 py-1 rounded text-xs font-medium transition-colors w-full sm:w-auto ${
+                            participant.donationCompleted
+                              ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                              : 'bg-green-100 text-green-800 hover:bg-green-200'
+                          }`}
+                          disabled={loading}
+                        >
+                          {participant.donationCompleted ? 'Mark Pending' : 'Mark Completed'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteParticipant(participant.id, `${participant.firstName} ${participant.lastName}`)}
+                          className="px-3 py-1 rounded text-xs font-medium bg-red-100 text-red-800 hover:bg-red-200 transition-colors w-full sm:w-auto"
+                          disabled={loading}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
-            </table>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -502,7 +559,8 @@ export default function AdminPage() {
             </button>
           </div>
           <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -519,6 +577,9 @@ export default function AdminPage() {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Registration Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -559,10 +620,20 @@ export default function AdminPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(volunteer.registrationDate).toLocaleDateString()}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => handleDeleteVolunteer(volunteer.id, `${volunteer.firstName} ${volunteer.lastName}`)}
+                        className="px-3 py-1 rounded text-xs font-medium bg-red-100 text-red-800 hover:bg-red-200 transition-colors w-full sm:w-auto"
+                        disabled={loading}
+                      >
+                        Delete
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
-            </table>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -639,7 +710,8 @@ export default function AdminPage() {
 
           {/* Existing Sponsors List */}
           <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -703,7 +775,8 @@ export default function AdminPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+              </table>
+            </div>
           </div>
         </div>
       )}
